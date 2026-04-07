@@ -1,0 +1,27 @@
+# Kustomize base 配置
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: taolib
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  # 基础设施
+  - infra/mongodb.yaml
+  - infra/redis.yaml
+  - infra/elasticsearch.yaml
+  # 应用服务
+  - apps/config-center.yaml
+  - apps/data-sync.yaml
+  - apps/log-platform.yaml
+  - apps/qrcode.yaml
+  - apps/gateway.yaml
+  # 前端
+  - frontend/frontend.yaml
+  # 网络
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: taolib

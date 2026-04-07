@@ -1,0 +1,15 @@
+FROM python:3.14-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir pdm
+
+COPY pyproject.toml pdm.lock* ./
+
+RUN pdm install --no-self --no-editable --with qrcode-server
+
+COPY src/taolib/qrcode ./src/taolib/qrcode
+
+EXPOSE 5174
+
+CMD ["python", "-m", "taolib.qrcode.server.main"]

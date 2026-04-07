@@ -1,0 +1,71 @@
+# QR 码服务 Deployment + Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qrcode-api
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: qrcode
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: taolib
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qrcode
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qrcode
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: qrcode-api
+          image: localhost/taolib-qrcode:latest
+          ports:
+            - containerPort: 5174
+              name: http
+          env:
+            - name: QRCODE_HOST
+              value: "0.0.0.0"
+            - name: QRCODE_PORT
+              value: "5174"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5174
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5174
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qrcode-api
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: qrcode
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    app.kubernetes.io/name: qrcode
+  ports:
+    - port: 5174
+      targetPort: http
+      name: http

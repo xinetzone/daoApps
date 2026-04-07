@@ -1,0 +1,60 @@
+# ============================================
+# Containerfile.config-center
+# 配置中心服务容器
+# 构建: podman build -f Containerfile.config-center -t taolib-config-center .
+# ============================================
+
+# ---------- 构建阶段 ----------
+FROM python:3.14-slim AS builder
+
+WORKDIR /build
+
+# 安装构建工具
+RUN pip install --no-cache-dir pdm-backend build
+
+# 复制包定义和源码（保持目录结构以支持 pdm-backend）
+COPY pyproject.toml README.md LICENSE ./
+COPY src/ ./src/
+
+# 构建 wheel 包
+RUN python -m build --wheel --outdir /build/dist
+
+# ---------- 运行阶段 ----------
+FROM python:3.14-slim
+
+LABEL maintainer="xinetzone <735613050@qq.com>"
+LABEL description="Taolib 配置中心服务"
+LABEL version="1.0.0"
+
+WORKDIR /app
+
+# 安装系统运行时依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appuser && useradd -r -g appuser -d /app appuser
+
+# 从构建阶段复制 wheel 并安装
+COPY --from=builder /build/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl"[config-server]" \
+    && rm -rf /tmp/*.whl
+
+# 切换到非 root 用户
+USER appuser
+
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+
+# 环境变量默认值
+# JWT_SECRET 不设置默认值，必须在运行时通过 -e 或 .env 注入
+ENV MONGO_URL="mongodb://localhost:27017" \
+    REDIS_URL="redis://localhost:6379" \
+    HOST="0.0.0.0" \
+    PORT="8000" \
+    LOG_FORMAT="json"
+
+CMD ["uvicorn", "taolib.config_center.server.app:create_app", \
+     "--factory", "--host", "0.0.0.0", "--port", "8000"]

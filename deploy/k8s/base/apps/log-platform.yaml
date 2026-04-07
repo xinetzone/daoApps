@@ -1,0 +1,119 @@
+# 日志平台 API Deployment + Worker Deployment + Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-platform-api
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: log-platform
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: taolib
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: log-platform
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: log-platform
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: log-platform-api
+          image: localhost/taolib-log-platform:latest
+          ports:
+            - containerPort: 8100
+              name: http
+          env:
+            - name: LOG_PLATFORM_ES_URL
+              value: "http://elasticsearch:9200"
+            - name: LOG_PLATFORM_MONGO_URL
+              value: "mongodb://mongodb:27017"
+            - name: LOG_PLATFORM_REDIS_URL
+              value: "redis://redis:6379"
+            - name: LOG_PLATFORM_HOST
+              value: "0.0.0.0"
+            - name: LOG_PLATFORM_PORT
+              value: "8100"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8100
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8100
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-platform-worker
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: log-platform
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: taolib
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: log-platform
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: log-platform
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: log-platform-worker
+          image: localhost/taolib-log-platform:latest
+          command: ["python", "-m", "taolib.log_platform.server.worker"]
+          env:
+            - name: LOG_PLATFORM_ES_URL
+              value: "http://elasticsearch:9200"
+            - name: LOG_PLATFORM_MONGO_URL
+              value: "mongodb://mongodb:27017"
+            - name: LOG_PLATFORM_REDIS_URL
+              value: "redis://redis:6379"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-platform-api
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: log-platform
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    app.kubernetes.io/name: log-platform
+    app.kubernetes.io/component: api
+  ports:
+    - port: 8100
+      targetPort: http
+      name: http

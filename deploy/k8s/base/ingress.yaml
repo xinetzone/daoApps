@@ -1,0 +1,49 @@
+# Ingress 配置（统一外部访问入口）
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: taolib-ingress
+  namespace: taolib
+  labels:
+    app.kubernetes.io/part-of: taolib
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/websocket-services: "gateway"
+spec:
+  ingressClassName: nginx
+  rules:
+    # API 网关（所有后端 API 请求）
+    - host: api.taolib.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 80
+    # 配置中心 UI
+    - host: config.taolib.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: config-center-ui
+                port:
+                  number: 80
+    # OAuth 管理 UI
+    - host: oauth.taolib.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth-admin-ui
+                port:
+                  number: 80

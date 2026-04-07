@@ -1,0 +1,1959 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Email Service",
+    "description": "事务性邮件和营销邮件服务系统",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/emails": {
+      "post": {
+        "tags": [
+          "Emails"
+        ],
+        "summary": "发送单封邮件",
+        "description": "发送单封邮件。\n\n## 请求体示例\n\n```json\n{\n  \"to\": [\"user@example.com\"],\n  \"subject\": \"欢迎加入\",\n  \"html_body\": \"<h1>欢迎</h1><p>感谢您的注册</p>\",\n  \"text_body\": \"欢迎，感谢您的注册\",\n  \"email_type\": \"transactional\",\n  \"template_id\": \"welcome_email\",\n  \"variables\": {\"name\": \"John\"}\n}\n```\n\n## 响应示例\n\n```json\n{\n  \"id\": \"email_abc123\",\n  \"status\": \"queued\",\n  \"to\": [\"user@example.com\"],\n  \"subject\": \"欢迎加入\",\n  \"created_at\": \"2024-01-15T10:30:00Z\"\n}\n```",
+        "operationId": "send_email_api_v1_emails_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "邮件已加入发送队列",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "503": {
+            "description": "没有配置邮件提供商"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Emails"
+        ],
+        "summary": "查询邮件列表",
+        "description": "查询邮件列表，支持按状态和类型过滤。\n\n## 查询参数\n\n- `status`: 邮件状态（queued/sent/delivered/failed）\n- `email_type`: 邮件类型（transactional/marketing/notification）\n- `skip`: 跳过记录数（默认 0）\n- `limit`: 返回数量（默认 20，最大 100）\n\n## 响应示例\n\n```json\n[\n  {\n    \"id\": \"email_abc123\",\n    \"status\": \"delivered\",\n    \"to\": [\"user@example.com\"],\n    \"subject\": \"欢迎\",\n    \"sent_at\": \"2024-01-15T10:30:00Z\"\n  }\n]\n```",
+        "operationId": "list_emails_api_v1_emails_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EmailStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "email_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EmailType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email Type"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取邮件列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EmailResponse"
+                  },
+                  "title": "Response List Emails Api V1 Emails Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emails/bulk": {
+      "post": {
+        "tags": [
+          "Emails"
+        ],
+        "summary": "批量发送邮件",
+        "description": "批量发送多封邮件。\n\n## 请求体示例\n\n```json\n[\n  {\n    \"to\": [\"user1@example.com\"],\n    \"subject\": \"通知\",\n    \"html_body\": \"<p>内容</p>\"\n  },\n  {\n    \"to\": [\"user2@example.com\"],\n    \"subject\": \"通知\",\n    \"html_body\": \"<p>内容</p>\"\n  }\n]\n```\n\n## 限制\n\n单次批量发送最多 100 封邮件。",
+        "operationId": "send_bulk_api_v1_emails_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/EmailCreate"
+                },
+                "type": "array",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "邮件已加入发送队列",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EmailResponse"
+                  },
+                  "type": "array",
+                  "title": "Response Send Bulk Api V1 Emails Bulk Post"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求数量超过限制"
+          },
+          "503": {
+            "description": "没有配置邮件提供商"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emails/{email_id}": {
+      "get": {
+        "tags": [
+          "Emails"
+        ],
+        "summary": "获取邮件详情",
+        "description": "根据 ID 获取邮件的详细信息，包括发送状态、追踪事件等。\n\n## 路径参数\n\n- `email_id`: 邮件唯一标识符\n\n## 响应示例\n\n```json\n{\n  \"id\": \"email_abc123\",\n  \"status\": \"delivered\",\n  \"to\": [\"user@example.com\"],\n  \"subject\": \"欢迎加入\",\n  \"html_body\": \"<h1>欢迎</h1>\",\n  \"sent_at\": \"2024-01-15T10:30:00Z\",\n  \"delivered_at\": \"2024-1-15T10:30:05Z\"\n}\n```",
+        "operationId": "get_email_api_v1_emails__email_id__get",
+        "parameters": [
+          {
+            "name": "email_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取邮件详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "邮件不存在"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/emails/{email_id}/events": {
+      "get": {
+        "tags": [
+          "Emails"
+        ],
+        "summary": "获取邮件追踪事件",
+        "description": "获取指定邮件的所有追踪事件，包括投递、打开、点击、退回等。\n\n## 路径参数\n\n- `email_id`: 邮件唯一标识符\n\n## 响应示例\n\n```json\n[\n  {\n    \"event_type\": \"delivered\",\n    \"timestamp\": \"2024-01-15T10:30:05Z\",\n    \"recipient\": \"user@example.com\"\n  },\n  {\n    \"event_type\": \"opened\",\n    \"timestamp\": \"2024-01-15T11:00:00Z\",\n    \"ip_address\": \"192.168.1.1\"\n  }\n]\n```",
+        "operationId": "get_email_events_api_v1_emails__email_id__events_get",
+        "parameters": [
+          {
+            "name": "email_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取追踪事件",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Create Template",
+        "description": "创建模板。",
+        "operationId": "create_template_api_v1_templates_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List Templates",
+        "description": "查询模板列表。",
+        "operationId": "list_templates_api_v1_templates_get",
+        "parameters": [
+          {
+            "name": "email_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EmailType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email Type"
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateResponse"
+                  },
+                  "title": "Response List Templates Api V1 Templates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{template_id}": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Get Template",
+        "description": "获取模板详情。",
+        "operationId": "get_template_api_v1_templates__template_id__get",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Update Template",
+        "description": "更新模板。",
+        "operationId": "update_template_api_v1_templates__template_id__patch",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Delete Template",
+        "description": "删除模板。",
+        "operationId": "delete_template_api_v1_templates__template_id__delete",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{template_id}/preview": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Preview Template",
+        "description": "预览模板渲染结果。",
+        "operationId": "preview_template_api_v1_templates__template_id__preview_post",
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Variables"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tracking/analytics": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Get Analytics",
+        "description": "获取分析数据。",
+        "operationId": "get_analytics_api_v1_tracking_analytics_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "统计天数",
+              "default": 7,
+              "title": "Days"
+            },
+            "description": "统计天数"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tracking/daily": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "Get Daily Stats",
+        "description": "获取按日统计数据。",
+        "operationId": "get_daily_stats_api_v1_tracking_daily_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "统计天数",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "统计天数"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tracking/events": {
+      "get": {
+        "tags": [
+          "Tracking"
+        ],
+        "summary": "List Events",
+        "description": "查询追踪事件。",
+        "operationId": "list_events_api_v1_tracking_events_get",
+        "parameters": [
+          {
+            "name": "email_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions": {
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "List Subscriptions",
+        "description": "查询订阅列表。",
+        "operationId": "list_subscriptions_api_v1_subscriptions_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/SubscriptionStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/{email}": {
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Get Subscription",
+        "description": "获取邮箱订阅状态。",
+        "operationId": "get_subscription_api_v1_subscriptions__email__get",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/{email}/resubscribe": {
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Resubscribe",
+        "description": "重新订阅。",
+        "operationId": "resubscribe_api_v1_subscriptions__email__resubscribe_post",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/subscriptions/unsubscribe": {
+      "get": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Unsubscribe Page",
+        "description": "退订确认页面。",
+        "operationId": "unsubscribe_page_api_v1_subscriptions_unsubscribe_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Subscriptions"
+        ],
+        "summary": "Process Unsubscribe",
+        "description": "处理退订请求。",
+        "operationId": "process_unsubscribe_api_v1_subscriptions_unsubscribe_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/sendgrid": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Sendgrid Webhook",
+        "description": "处理 SendGrid Event Webhook。",
+        "operationId": "sendgrid_webhook_api_v1_webhooks_sendgrid_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/mailgun": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Mailgun Webhook",
+        "description": "处理 Mailgun Webhook。",
+        "operationId": "mailgun_webhook_api_v1_webhooks_mailgun_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/ses": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Ses Webhook",
+        "description": "处理 Amazon SES SNS 通知。",
+        "operationId": "ses_webhook_api_v1_webhooks_ses_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/generic": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Generic Webhook",
+        "description": "通用 Webhook（SMTP bounce 通知等）。",
+        "operationId": "generic_webhook_api_v1_webhooks_generic_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "系统健康检查。",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "summary": "Dashboard",
+        "description": "监控仪表板。",
+        "operationId": "dashboard_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EmailAttachment": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "description": "Attachment filename"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "MIME type",
+            "default": "application/octet-stream"
+          },
+          "content_base64": {
+            "type": "string",
+            "title": "Content Base64",
+            "description": "Base64-encoded file content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "content_base64"
+        ],
+        "title": "EmailAttachment",
+        "description": "Email attachment metadata."
+      },
+      "EmailCreate": {
+        "properties": {
+          "sender": {
+            "type": "string",
+            "title": "Sender",
+            "description": "Sender email address (From)"
+          },
+          "sender_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Name",
+            "description": "Sender display name"
+          },
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Recipients",
+            "description": "To recipients"
+          },
+          "cc": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Cc",
+            "description": "CC recipients"
+          },
+          "bcc": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Bcc",
+            "description": "BCC recipients"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "description": "Email subject line"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType",
+            "description": "Email type",
+            "default": "transactional"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/EmailPriority",
+            "description": "Sending priority",
+            "default": "normal"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags for categorization"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id",
+            "description": "Template ID for rendering"
+          },
+          "template_variables": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {},
+                  "type": "array"
+                },
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Template Variables",
+            "description": "Variables for template rendering"
+          },
+          "html_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html Body",
+            "description": "HTML body (if no template)"
+          },
+          "text_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Body",
+            "description": "Plain text body (fallback)"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/EmailAttachment"
+            },
+            "type": "array",
+            "title": "Attachments",
+            "description": "File attachments"
+          },
+          "schedule_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule At",
+            "description": "Scheduled send time (UTC)"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata",
+            "description": "Custom metadata key-value pairs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sender",
+          "recipients",
+          "subject"
+        ],
+        "title": "EmailCreate",
+        "description": "Email creation request."
+      },
+      "EmailPriority": {
+        "type": "string",
+        "enum": [
+          "high",
+          "normal",
+          "low"
+        ],
+        "title": "EmailPriority",
+        "description": "Email sending priority."
+      },
+      "EmailRecipient": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Recipient email address"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "EmailRecipient",
+        "description": "Email recipient with optional display name."
+      },
+      "EmailResponse": {
+        "properties": {
+          "sender": {
+            "type": "string",
+            "title": "Sender",
+            "description": "Sender email address (From)"
+          },
+          "sender_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender Name",
+            "description": "Sender display name"
+          },
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Recipients",
+            "description": "To recipients"
+          },
+          "cc": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Cc",
+            "description": "CC recipients"
+          },
+          "bcc": {
+            "items": {
+              "$ref": "#/components/schemas/EmailRecipient"
+            },
+            "type": "array",
+            "title": "Bcc",
+            "description": "BCC recipients"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "description": "Email subject line"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType",
+            "description": "Email type",
+            "default": "transactional"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/EmailPriority",
+            "description": "Sending priority",
+            "default": "normal"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags for categorization"
+          },
+          "_id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EmailStatus",
+            "description": "Current delivery status"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider",
+            "description": "Provider used for sending"
+          },
+          "provider_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Message Id",
+            "description": "Message ID from provider"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "html_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html Body"
+          },
+          "text_body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Body"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count",
+            "default": 0
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "delivered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered At"
+          },
+          "opened_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opened At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Record creation time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update time"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sender",
+          "recipients",
+          "subject",
+          "_id",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EmailResponse",
+        "description": "Email API response."
+      },
+      "EmailStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "sending",
+          "sent",
+          "delivered",
+          "opened",
+          "clicked",
+          "bounced",
+          "failed",
+          "rejected"
+        ],
+        "title": "EmailStatus",
+        "description": "Email delivery status."
+      },
+      "EmailType": {
+        "type": "string",
+        "enum": [
+          "transactional",
+          "marketing"
+        ],
+        "title": "EmailType",
+        "description": "Email category type."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "SubscriptionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "unsubscribed"
+        ],
+        "title": "SubscriptionStatus",
+        "description": "Subscription status."
+      },
+      "TemplateCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Template unique name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Template description",
+            "default": ""
+          },
+          "subject_template": {
+            "type": "string",
+            "title": "Subject Template",
+            "description": "Subject line with variable placeholders"
+          },
+          "html_template": {
+            "type": "string",
+            "title": "Html Template",
+            "description": "HTML body with Jinja2 syntax"
+          },
+          "text_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Template",
+            "description": "Plain text fallback template"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType",
+            "description": "Email type",
+            "default": "transactional"
+          },
+          "variables_schema": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Variables Schema",
+            "description": "Variable name to type mapping for documentation"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags for categorization"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "subject_template",
+          "html_template"
+        ],
+        "title": "TemplateCreate",
+        "description": "Template creation request."
+      },
+      "TemplateResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Template unique name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Template description",
+            "default": ""
+          },
+          "subject_template": {
+            "type": "string",
+            "title": "Subject Template",
+            "description": "Subject line with variable placeholders"
+          },
+          "html_template": {
+            "type": "string",
+            "title": "Html Template",
+            "description": "HTML body with Jinja2 syntax"
+          },
+          "text_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Template",
+            "description": "Plain text fallback template"
+          },
+          "email_type": {
+            "$ref": "#/components/schemas/EmailType",
+            "description": "Email type",
+            "default": "transactional"
+          },
+          "variables_schema": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Variables Schema",
+            "description": "Variable name to type mapping for documentation"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Tags for categorization"
+          },
+          "_id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "subject_template",
+          "html_template",
+          "_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TemplateResponse",
+        "description": "Template API response."
+      },
+      "TemplateUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "subject_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Template"
+          },
+          "html_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Html Template"
+          },
+          "text_template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Template"
+          },
+          "email_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmailType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "variables_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variables Schema"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "title": "TemplateUpdate",
+        "description": "Template update request (all fields optional)."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

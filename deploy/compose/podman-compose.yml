@@ -1,0 +1,106 @@
+# ============================================
+# DaoApps Podman Compose 部署配置
+# 用法: cd deploy/compose && podman-compose up -d
+# 说明: 仅包含前端应用和 API 网关
+#
+# 注意: 后端微服务（config-center、data-sync、log-platform、qrcode 等）
+#       以及基础设施（elasticsearch、mongodb、redis）需独立部署。
+#       请在 nginx.conf 中配置后端服务的实际访问地址（见环境变量说明）。
+# ============================================
+
+services:
+  # ==================== API 网关层 ====================
+
+  gateway:
+    build:
+      context: ../gateway
+      dockerfile: Containerfile
+    image: localhost/taolib-gateway:latest
+    container_name: taolib-gateway
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "30m"
+        max-file: "5"
+    networks:
+      - taolib-network
+
+  # ==================== 前端应用层 ====================
+
+  log-platform-frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/frontend/Containerfile.pnpm
+      args:
+        APP_NAME: log-platform
+    image: localhost/taolib-log-platform-frontend:latest
+    container_name: taolib-log-platform-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - taolib-network
+
+  config-center-ui:
+    build:
+      context: ../..
+      dockerfile: deploy/frontend/Containerfile.pnpm
+      args:
+        APP_NAME: config-center
+    image: localhost/taolib-config-center-ui:latest
+    container_name: taolib-config-center-ui
+    ports:
+      - "3001:80"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - taolib-network
+
+  oauth-admin-ui:
+    build:
+      context: ../..
+      dockerfile: deploy/frontend/Containerfile.pnpm
+      args:
+        APP_NAME: oauth-admin
+    image: localhost/taolib-oauth-admin-ui:latest
+    container_name: taolib-oauth-admin-ui
+    ports:
+      - "3002:80"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - taolib-network
+
+# ==================== 网络 ====================
+
+networks:
+  taolib-network:
+    driver: bridge

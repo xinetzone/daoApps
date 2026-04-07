@@ -1,0 +1,110 @@
+[python]
+env_dir = "${PYTHON_ENV_DIR:-C:\\Users\\XMICUser\\.conda\\envs\\py314}"
+executable = "${PYTHON_EXECUTABLE:-& \"${python.env_dir}\\python.exe\"}"
+
+[ports]
+config_center = 8000
+data_sync = 8001
+analytics = 8002
+site = 8000
+
+[examples]
+api_base_url = "http://localhost:${ports.config_center}"
+database_source_uri = "mongodb://old-server:27017"
+database_target_uri = "mongodb://new-server:27017"
+jwt_token = "your-jwt-token"
+jwt_secret = "your-secret-key"
+
+[database]
+site_db_path = "src/taolib/site/data/site.db"
+admin_username = "admin"
+admin_password = "changeme"
+
+[links]
+pypi = "https://pypi.org/project/taolib/"
+documentation = "https://taolib.readthedocs.io/zh-cn/latest/"
+github = "https://github.com/xinetzone/tao"
+
+[directories]
+apps = "apps"
+assets = "assets"
+deploy = "deploy"
+doc = "doc"
+packages = "packages"
+schemas = "schemas"
+scripts = "scripts"
+src = "src"
+tests = "tests"
+
+[[frontend.apps]]
+name = "forum"
+path = "${directories.apps}/forum"
+tech = "React + TypeScript + Tailwind + React Router 7"
+
+[[frontend.apps]]
+name = "config-center"
+path = "${directories.apps}/config-center"
+tech = "React + Zustand + React Hook Form"
+
+[[frontend.apps]]
+name = "oauth-admin"
+path = "${directories.apps}/oauth-admin"
+tech = "React + TypeScript"
+
+[[frontend.apps]]
+name = "growth-tracker"
+path = "${directories.apps}/growth-tracker"
+tech = "React + Recharts + date-fns"
+
+[[frontend.apps]]
+name = "habit-tracker"
+path = "${directories.apps}/habit-tracker"
+tech = "React + TypeScript"
+
+[[frontend.apps]]
+name = "moodflow"
+path = "${directories.apps}/moodflow"
+tech = "React + TypeScript"
+
+[[frontend.apps]]
+name = "xinyu"
+path = "${directories.apps}/xinyu"
+tech = "React + TypeScript"
+
+[[frontend.apps]]
+name = "time-capsule"
+path = "${directories.apps}/time-capsule"
+tech = "React + TypeScript"
+
+[[frontend.apps]]
+name = "qrcode-studio"
+path = "${directories.apps}/qrcode-studio"
+tech = "React + TypeScript"
+
+[env]
+TAOLIB_REMOTE_TOOLS_ENV_CMD = ":"
+TAOLIB_REMOTE_CONDA_ACTIVATE_CMD = ":"
+TAOLIB_REMOTE_PROBE_CMD = "python -V"
+TAOLIB_REMOTE_ENCODING = "utf-8"
+TAOLIB_VERSION = "0.0.0"
+SITEMAP_URL_BASE = ""
+
+[milestones.phase_a]
+name = "安全修复"
+status = "完成"
+date = "2026-04-07"
+
+[milestones.phase_b]
+name = "Monorepo 基础设施"
+status = "完成"
+date = "2026-04-07"
+
+[milestones.phase_c]
+name = "共享前端包"
+status = "完成"
+date = "2026-04-07"
+
+[milestones.phase_d]
+name = "类型安全与质量提升"
+status = "完成"
+date = "2026-04-07"

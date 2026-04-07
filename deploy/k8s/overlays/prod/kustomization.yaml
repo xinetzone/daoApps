@@ -1,0 +1,103 @@
+# 生产环境 overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: taolib-prod
+
+commonLabels:
+  environment: production
+
+# 生产环境增加副本数和资源
+patches:
+  # 配置中心多副本
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: config-center
+      spec:
+        replicas: 2
+        template:
+          spec:
+            containers:
+              - name: config-center
+                resources:
+                  requests:
+                    memory: "512Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "1Gi"
+                    cpu: "1000m"
+  # 日志平台多副本
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: log-platform-api
+      spec:
+        replicas: 2
+        template:
+          spec:
+            containers:
+              - name: log-platform-api
+                resources:
+                  requests:
+                    memory: "512Mi"
+                    cpu: "500m"
+                  limits:
+                    memory: "1Gi"
+                    cpu: "1000m"
+  # 网关多副本
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: gateway
+      spec:
+        replicas: 2
+  # MongoDB 生产环境资源
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: mongodb
+      spec:
+        template:
+          spec:
+            containers:
+              - name: mongodb
+                resources:
+                  requests:
+                    memory: "1Gi"
+                    cpu: "500m"
+                  limits:
+                    memory: "2Gi"
+                    cpu: "1000m"
+  # Elasticsearch 生产环境资源
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: elasticsearch
+      spec:
+        template:
+          spec:
+            containers:
+              - name: elasticsearch
+                env:
+                  - name: discovery.type
+                    value: "single-node"
+                  - name: xpack.security.enabled
+                    value: "true"
+                  - name: ES_JAVA_OPTS
+                    value: "-Xms1g -Xmx1g"
+                resources:
+                  requests:
+                    memory: "1Gi"
+                    cpu: "1000m"
+                  limits:
+                    memory: "2Gi"
+                    cpu: "2000m"

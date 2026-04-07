@@ -1,0 +1,50 @@
+# ============================================
+# Containerfile.data-sync
+# MongoDB 数据同步管道服务容器
+# 构建: podman build -f Containerfile.data-sync -t taolib-data-sync .
+# ============================================
+
+# ---------- 构建阶段 ----------
+FROM python:3.14-slim AS builder
+
+WORKDIR /build
+
+RUN pip install --no-cache-dir pdm-backend build
+
+COPY pyproject.toml README.md LICENSE ./
+COPY src/ ./src/
+
+RUN python -m build --wheel --outdir /build/dist
+
+# ---------- 运行阶段 ----------
+FROM python:3.14-slim
+
+LABEL maintainer="xinetzone <735613050@qq.com>"
+LABEL description="Taolib 数据同步管道服务"
+LABEL version="1.0.0"
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appuser && useradd -r -g appuser -d /app appuser
+
+COPY --from=builder /build/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl"[data-sync-server]" \
+    && rm -rf /tmp/*.whl
+
+USER appuser
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD curl -f http://localhost:8001/api/v1/health || exit 1
+
+ENV DATA_SYNC_MONGO_URL="mongodb://localhost:27017" \
+    DATA_SYNC_HOST="0.0.0.0" \
+    DATA_SYNC_PORT="8001" \
+    LOG_FORMAT="json"
+
+CMD ["uvicorn", "taolib.data_sync.server.app:create_app", \
+     "--factory", "--host", "0.0.0.0", "--port", "8001"]

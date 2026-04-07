@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 虚拟环境
+.venv/
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# 文档
+doc/
+doc/_build/
+
+# 测试
+tests/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# 其他
+.env
+*.log
+*.sqlite
+deploy/compose/
+scripts/
+
+# Podman/Docker
+Dockerfile*
+Containerfile*
+.dockerignore
+.containerignore
+
+# 前端应用（构建时不需要）
+apps/
+assets/

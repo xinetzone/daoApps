@@ -1,0 +1,80 @@
+# 配置中心 Deployment + Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-center
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: config-center
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: taolib
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: config-center
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: config-center
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: config-center
+          image: localhost/taolib-config-center:latest
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: CONFIG_CENTER_MONGO_URL
+              value: "mongodb://mongodb:27017"
+            - name: CONFIG_CENTER_REDIS_URL
+              value: "redis://redis:6379"
+            - name: CONFIG_CENTER_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: taolib-secrets
+                  key: jwt-secret
+            - name: CONFIG_CENTER_HOST
+              value: "0.0.0.0"
+            - name: CONFIG_CENTER_PORT
+              value: "8000"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-center
+  namespace: taolib
+  labels:
+    app.kubernetes.io/name: config-center
+    app.kubernetes.io/component: api
+spec:
+  selector:
+    app.kubernetes.io/name: config-center
+  ports:
+    - port: 8000
+      targetPort: http
+      name: http

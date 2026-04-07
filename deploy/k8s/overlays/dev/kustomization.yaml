@@ -1,0 +1,57 @@
+# 开发环境 overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+namespace: taolib-dev
+
+commonLabels:
+  environment: development
+
+# 开发环境使用较少资源
+patches:
+  # MongoDB 降低资源配额
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: mongodb
+      spec:
+        template:
+          spec:
+            containers:
+              - name: mongodb
+                resources:
+                  requests:
+                    memory: "256Mi"
+                    cpu: "100m"
+                  limits:
+                    memory: "512Mi"
+                    cpu: "250m"
+  # Elasticsearch 降低内存
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: elasticsearch
+      spec:
+        template:
+          spec:
+            containers:
+              - name: elasticsearch
+                env:
+                  - name: discovery.type
+                    value: "single-node"
+                  - name: xpack.security.enabled
+                    value: "false"
+                  - name: ES_JAVA_OPTS
+                    value: "-Xms256m -Xmx256m"
+                resources:
+                  requests:
+                    memory: "256Mi"
+                    cpu: "250m"
+                  limits:
+                    memory: "512Mi"
+                    cpu: "500m"

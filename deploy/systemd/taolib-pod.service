@@ -1,0 +1,25 @@
+[Unit]
+Description=Taolib Podman Pod - 配置中心和日志平台
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/taolib
+
+# 启动 Pod
+ExecStart=/usr/bin/podman pod start taolib-pod
+
+# 停止 Pod
+ExecStop=/usr/bin/podman pod stop taolib-pod
+
+# 健康检查（可选）
+ExecStartPost=/bin/bash -c 'sleep 60 && /opt/taolib/scripts/podman-healthcheck.sh || true'
+
+# 重启策略
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
